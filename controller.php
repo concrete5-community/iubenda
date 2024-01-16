@@ -58,7 +58,7 @@ class Controller extends Package implements ProviderInterface
      */
     public function getPackageDescription()
     {
-        return t('Make it easier to integrade Iubenda into your website');
+        return t('Make it easier to integrate Iubenda into your website');
     }
 
     /**
