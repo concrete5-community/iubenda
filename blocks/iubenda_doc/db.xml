@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+  xmlns="http://www.concrete5.org/doctrine-xml/0.5"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.concrete5.org/doctrine-xml/0.5 https://concretecms.github.io/doctrine-xml/doctrine-xml-0.5.xsd"
+>
+
+  <table name="btIubendaDoc">
+    <field name="bID" type="integer">
+      <unsigned />
+      <key />
+      <notnull />
+    </field>
+    <field name="docType" type="string" size="40">
+      <notnull />
+    </field>
+    <field name="docID" type="integer">
+      <unsigned />
+      <notnull />
+    </field>
+    <field name="renderMethod" type="string" size="30">
+      <notnull />
+    </field>
+    <field name="whiteLabel" type="boolean">
+      <notnull />
+    </field>
+    <field name="linkInnerHtml" type="text">
+      <notnull />
+    </field>
+    <field name="linkStyle" type="string" size="30">
+      <notnull />
+    </field>
+    <field name="cssClasses" type="text">
+      <notnull />
+    </field>
+    <field name="noMarkup" type="boolean">
+      <notnull />
+    </field>
+    <field name="docCacheLifetime" type="integer">
+      <unsigned />
+      <notnull />
+    </field>
+  </table>
+
+</schema>

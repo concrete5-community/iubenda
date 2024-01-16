@@ -1,0 +1,30 @@
+{
+    "name": "concrete5-community/iubenda",
+    "description": "A ConcreteCMS/concrete5 package that makes it easier to integrate Iubenda into your website",
+    "type": "concrete5-package",
+    "keywords": [
+        "concrete",
+        "concretecms",
+        "concrete5",
+        "ccm",
+        "iubenda"
+    ],
+    "homepage": "https://github.com/concrete5-community/iubenda",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Michele Locati",
+            "email": "michele@locati.it",
+            "role": "maintainer",
+            "homepage": "https://mlocati.github.io"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/concrete5-community/iubenda/issues",
+        "source": "https://github.com/concrete5-community/iubenda"
+    },
+    "require": {
+        "concrete5/core": "^8.5 | ^9.1",
+        "concrete5-community/http_client_compat": "^1"
+    }
+}

@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<concrete5-cif version="1.0">
+
+    <blocktypes>
+        <blocktype handle="iubenda_doc" package="iubenda" />
+    </blocktypes>
+
+</concrete5-cif>
