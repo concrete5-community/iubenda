@@ -96,6 +96,13 @@ class Controller extends BlockController
     protected $btTable = 'btIubendaDoc';
 
     /**
+     * {@inheritdoc}
+     *
+     * @see \Concrete\Core\Block\BlockController::$btExportContentColumns
+     */
+    protected $btExportContentColumns = ['linkInnerHtml'];
+
+    /**
      * @var string|null
      */
     protected $docType;
