@@ -2,16 +2,18 @@
 
 namespace Concrete\Package\Iubenda\Block\IubendaDoc;
 
+use CHttpClient\Client;
 use Concrete\Core\Block\BlockController;
 use Concrete\Core\Cache\Level\ExpensiveCache;
-use CHttpClient\Client;
-use Exception;
-use RuntimeException;
-use Throwable;
 use Concrete\Core\Editor\LinkAbstractor;
 use Concrete\Core\Error\UserMessageException;
-use Concrete\Core\Page\Page;
 use Concrete\Core\Localization\Localization;
+use Concrete\Core\Page\Page;
+use Concrete\Core\Utility\Service\Xml;
+use Exception;
+use RuntimeException;
+use SimpleXMLElement;
+use Throwable;
 
 defined('C5_EXECUTE') or die('Access denied.');
 
@@ -151,12 +153,12 @@ class Controller extends BlockController
     {
         return t('Iubenda Document');
     }
-    
+
     public function getBlockTypeDescription()
     {
         return t('Add a Iubenda document to your website.');
     }
-    
+
     public function add()
     {
         $this->docType = self::DOCTYPE_PRIVACYPOLICY_SIMPLIFIED;
@@ -188,7 +190,7 @@ class Controller extends BlockController
         $this->set('noMarkup', !empty($this->noMarkup));
         $this->set('docCacheLifetime', (int) $this->docCacheLifetime);
     }
-    
+
     /**
      * {@inheritdoc}
      *
@@ -197,10 +199,10 @@ class Controller extends BlockController
     public function validate($data)
     {
         $check = $this->normalize($data);
-        
+
         return is_array($check) ? null : $check;
     }
-    
+
     /**
      * {@inheritdoc}
      *
@@ -214,7 +216,49 @@ class Controller extends BlockController
         }
         parent::save($data);
     }
-    
+
+    /**
+     * {@inheritdoc}
+     *
+     * @see \Concrete\Core\Block\BlockController::export()
+     */
+    public function export(SimpleXMLElement $blockNode)
+    {
+        parent::export($blockNode);
+        if (version_compare(APP_VERSION, '9.4.0') < 0) {
+            $linkInnerHtml = (string) $blockNode->data->record->linkInnerHtml;
+            if ($linkInnerHtml !== '') {
+                $linkInnerHtmlFixed = LinkAbstractor::export($linkInnerHtml);
+                if ($linkInnerHtmlFixed !== $linkInnerHtml) {
+                    unset($blockNode->data->record->linkInnerHtml);
+                    $xmlService = $this->app->make(Xml::class);
+                    if (method_exists($xmlService, 'createChildElement')) {
+                        $xmlService->createChildElement($blockNode->data->record, 'linkInnerHtml', $linkInnerHtmlFixed);
+                    } else {
+                        $xmlService->createCDataNode($blockNode->data->record, 'linkInnerHtml', $linkInnerHtmlFixed);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @see \Concrete\Core\Block\BlockController::getImportData()
+     */
+    protected function getImportData($blockNode, $page)
+    {
+        $args = parent::getImportData($blockNode, $page);
+        if (version_compare(APP_VERSION, '9.2.1') < 0) {
+            if (isset($blockNode->data->record->linkInnerHtml)) {
+                $args['linkInnerHtml'] = LinkAbstractor::import((string) $blockNode->data->record->linkInnerHtml);
+            }
+        }
+
+        return $args;
+    }
+
     private function normalize($data)
     {
         $normalized = [
@@ -248,7 +292,7 @@ class Controller extends BlockController
         if ($normalized['linkInnerHtml'] !== '') {
             $normalized['linkInnerHtml'] = LinkAbstractor::translateTo($normalized['linkInnerHtml']);
         }
-        
+
         return $errors->has() ? $errors : $normalized;
     }
     /**
@@ -263,7 +307,7 @@ class Controller extends BlockController
             self::DOCTYPE_TERMS_AND_CONDITIONS => t('Terms and Conditions'),
         ];
     }
-    
+
     /**
      * @return array
      */
@@ -276,7 +320,7 @@ class Controller extends BlockController
             self::RENDERMETHOD_EMBED_STATIC => t('Embed in the page (static)'),
         ];
     }
-    
+
     /**
      * @return array
      */
@@ -415,7 +459,7 @@ class Controller extends BlockController
             $html .= ' class="' . h($this->cssClasses) . '"';
         }
         $html .= '>' . $linkInnerHtml . '</a>';
-        
+
         return $html;
     }
 
