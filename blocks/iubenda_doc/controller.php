@@ -7,8 +7,10 @@ use Concrete\Core\Block\BlockController;
 use Concrete\Core\Cache\Level\ExpensiveCache;
 use Concrete\Core\Editor\LinkAbstractor;
 use Concrete\Core\Error\UserMessageException;
+use Concrete\Core\File\Tracker\FileTrackableInterface;
 use Concrete\Core\Localization\Localization;
 use Concrete\Core\Page\Page;
+use Concrete\Core\Statistics\UsageTracker\AggregateTracker;
 use Concrete\Core\Utility\Service\Xml;
 use Exception;
 use RuntimeException;
@@ -17,7 +19,7 @@ use Throwable;
 
 defined('C5_EXECUTE') or die('Access denied.');
 
-class Controller extends BlockController
+class Controller extends BlockController implements FileTrackableInterface
 {
     const DOCTYPE_PRIVACYPOLICY_SIMPLIFIED = 'privacy-policy-simplified';
 
@@ -103,6 +105,11 @@ class Controller extends BlockController
      * @see \Concrete\Core\Block\BlockController::$btExportContentColumns
      */
     protected $btExportContentColumns = ['linkInnerHtml'];
+
+    /**
+     * @var \Concrete\Core\Statistics\UsageTracker\AggregateTracker|null
+     */
+    protected $tracker;
 
     /**
      * @var string|null
@@ -215,6 +222,43 @@ class Controller extends BlockController
             throw new UserMessageException(implode("\n", $data->getList()));
         }
         parent::save($data);
+        $this->linkInnerHtml = $data['linkInnerHtml'];
+        if (version_compare(APP_VERSION, '9.0.2') < 0) {
+            $this->getTracker()->track($this);
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @see \Concrete\Core\Block\BlockController::delete()
+     */
+    public function delete()
+    {
+        if (version_compare(APP_VERSION, '9.0.2') < 0) {
+            $this->getTracker()->forget($this);
+        }
+        parent::delete();
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @see \Concrete\Core\File\Tracker\FileTrackableInterface::getUsedCollection()
+     */
+    public function getUsedCollection()
+    {
+        return $this->getCollectionObject();
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @see \Concrete\Core\File\Tracker\FileTrackableInterface::getUsedFiles()
+     */
+    public function getUsedFiles()
+    {
+        return static::getUsedFilesIn($this->linkInnerHtml);
     }
 
     /**
@@ -558,5 +602,50 @@ class Controller extends BlockController
             }
         }
         throw new RuntimeException(t('Failed to fetch Iubenda document from URL %s: %s', $url, $response->getBody()));
+    }
+
+    /**
+     * @return \Concrete\Core\Statistics\UsageTracker\AggregateTracker
+     */
+    protected function getTracker()
+    {
+        if ($this->tracker === null) {
+            $this->tracker = $this->app->make(AggregateTracker::class);
+        }
+
+        return $this->tracker;
+    }
+
+    /**
+     * @param string|null $richText
+     *
+     * @return int[]|string[]
+     */
+    protected static function getUsedFilesIn($richText)
+    {
+        $richText = (string) $richText;
+        if ($richText === '') {
+            return [];
+        }
+        $rxIdentifier = '(?<id>[1-9][0-9]{0,18})';
+        if (method_exists(\Concrete\Core\File\File::class, 'getByUUID')) {
+            $rxIdentifier = '(?:(?<uuid>[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12})|' . $rxIdentifier . ')';
+        }
+        $result = [];
+        $matches = null;
+        foreach ([
+            '/\<concrete-picture[^>]*?\bfID\s*=\s*[\'"]' . $rxIdentifier . '[\'"]/i',
+            '/\bFID_DL_' . $rxIdentifier . '\b/',
+        ] as $rx) {
+            if (!preg_match_all($rx, $richText, $matches)) {
+                continue;
+            }
+            $result = array_merge($result, array_map('intval', array_filter($matches['id'])));
+            if (isset($matches['uuid'])) {
+                $result = array_merge($result, array_map('strtolower', array_filter($matches['uuid'])));
+            }
+        }
+
+        return $result;
     }
 }
